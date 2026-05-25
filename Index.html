@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Ubicación Actual (Gratis)</title>
+    
+    <!-- Hojas de estilo de Leaflet para que el mapa se vea correctamente -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    
+    <style>
+        /* Ajustes para pantalla completa en el teléfono */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        #mapa {
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Indicador de estado flotante */
+        #estado {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000; /* Por encima del mapa */
+            background-color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="estado">Buscando tu señal de GPS...</div>
+    <div id="mapa"></div>
+
+    <!-- Librería JavaScript de Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        const infoEstado = document.getElementById('estado');
+        let mapa;
+
+        // Comprobamos si el teléfono tiene soporte de GPS en el navegador
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (posicion) => {
+                    const lat = posicion.coords.latitude;
+                    const lon = posicion.coords.longitude;
+
+                    // Ocultamos el letrero de carga
+                    infoEstado.style.display = 'none';
+
+                    // 1. Inicializar el mapa centrado en el usuario (Zoom 16 es ideal para calles)
+                    mapa = L.map('mapa').setView([lat, lon], 16);
+
+                    // 2. Cargar los mapas gratuitos de OpenStreetMap
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    }).addTo(mapa);
+
+                    // 3. Añadir el marcador en la ubicación exacta
+                    L.marker([lat, lon]).addTo(mapa)
+                        .bindPopup('<b>¡Estás aquí!</b>')
+                        .openPopup();
+                },
+                (error) => {
+                    // Control de errores si el usuario bloquea el GPS
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            infoEstado.textContent = "Error: Debes permitir el acceso al GPS.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            infoEstado.textContent = "Error: Ubicación no disponible.";
+                            break;
+                        case error.TIMEOUT:
+                            infoEstado.textContent = "Error: Se agotó el tiempo de espera.";
+                            break;
+                        default:
+                            infoEstado.textContent = "Error al obtener ubicación.";
+                            break;
+                    }
+                },
+                {
+                    enableHighAccuracy: true, // Usa el GPS del teléfono para máxima precisión
+                    timeout: 8000,
+                    maximumAge: 0
+                }
+            );
+        } else {
+            infoEstado.textContent = "Tu navegador no soporta geolocalización.";
+        }
+    </script>
+</body>
+</html>
