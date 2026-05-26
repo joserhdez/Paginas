@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convertidor de Temperatura - Visor Transparente</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1f;
+            --wheel-bg: #2d2d38;
+            --celsius-color: #00adb5;
+            --fahrenheit-color: #ff5722;
+            --text-color: #eeeeee;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            font-weight: 400;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+        }
+
+        p.instruction {
+            color: #777;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+        }
+
+        .converter-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #111116;
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 15px 35px rgba(0,0,0,0.6);
+        }
+
+        /* NUEVO VISOR CENTRAL COMPLETAMENTE TRANSPARENTE */
+        .indicator-bridge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px;
+            height: 70px;
+            background: transparent; /* Totalmente transparente */
+            border: 2px solid rgba(255, 255, 255, 0.2); /* Borde sutil */
+            border-radius: 50%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+
+        /* Punto central guía de lectura */
+        .indicator-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #fff, 0 0 12px var(--celsius-color);
+        }
+
+        .wheel-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .wheel-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #label-celsius { color: var(--celsius-color); }
+        #label-fahrenheit { color: var(--fahrenheit-color); }
+
+        /* Estilo de los discos de engranaje */
+        .wheel {
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #343444 0%, var(--wheel-bg) 65%, #15151f 100%);
+            position: relative;
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5), inset 0 2px 6px rgba(255,255,255,0.15);
+        }
+
+        .wheel:active {
+            cursor: grabbing;
+        }
+
+        /* Centro mecánico fijo */
+        .wheel::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: #16161c;
+            box-shadow: inset 0 4px 12px rgba(0,0,0,0.8), 0 2px 2px rgba(255,255,255,0.05);
+            z-index: 4;
+        }
+
+        /* Contenedor individual de cada número */
+        .number-slot {
+            position: absolute;
+            width: 46px;
+            height: 30px;
+            left: calc(50% - 23px);
+            top: calc(50% - 15px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        /* El texto interno del número */
+        .number-text {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #555565; /* Color más tenue para los números inactivos */
+            transition: color 0.15s, font-size 0.15s, text-shadow 0.15s;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* Estilo cuando el número queda seleccionado en el centro transparente */
+        .number-slot.active .number-text {
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
+        .wheel-wrapper:first-child .number-slot.active .number-text {
+            color: var(--celsius-color);
+            text-shadow: 0 0 12px rgba(0, 173, 181, 0.8);
+        }
+
+        .wheel-wrapper:last-child .number-slot.active .number-text {
+            color: var(--fahrenheit-color);
+            text-shadow: 0 0 12px rgba(255, 87, 34, 0.8);
+        }
+
+        /* Pantallas digitales de precisión */
+        .display-value {
+            margin-top: 25px;
+            font-size: 1.6rem;
+            font-family: monospace;
+            background: #09090d;
+            padding: 6px 20px;
+            border-radius: 6px;
+            border: 1px solid #2a2a35;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Convertidor de Temperatura Tipo Engranaje</h1>
+    <p class="instruction">Gira cualquiera de los discos. Los números se alinean perfectamente en el visor transparente central.</p>
+
+    <div class="converter-container">
+        <div class="wheel-wrapper">
+            <div class="wheel-label" id="label-celsius">Centígrados</div>
+            <div id="celsius-wheel" class="wheel"></div>
+        </div>
+
+        <div class="wheel-wrapper">
+            <div class="wheel-label" id="label-fahrenheit">Fahrenheit</div>
+            <div id="fahrenheit-wheel" class="wheel"></div>
+        </div>
+    </div>
+
+    <script>
+        const cWheel = document.getElementById('celsius-wheel');
+        const fWheel = document.getElementById('fahrenheit-wheel');
+
+        const totalTicks = 45; 
+        const radius = 122; 
+        const cStep = 1; 
+        
+        let currentRotationAngle = 0; 
+
+        let cSlots = [];
+        let fSlots = [];
+
+        function createPhysicalWheels() {
+            for (let i = -5; i < totalTicks-5; i++) {
+                const tickAngle = (i * 360) / totalTicks;
+                const angleRad = (tickAngle * Math.PI) / 180;
+
+                const x = Math.round(radius * Math.cos(angleRad));
+                const y = Math.round(radius * Math.sin(angleRad));
+
+                // Disco Izquierdo (Celsius)
+                const cValue = i * cStep; 
+                const displayC = cValue > 180 ? cValue - 360 : cValue;
+
+                const cSlot = document.createElement('div');
+                cSlot.className = 'number-slot';
+                cSlot.dataset.nativeAngle = tickAngle; 
+                
+                const cText = document.createElement('div');
+                cText.className = 'number-text';
+                cText.textContent = displayC;
+                
+                cSlot.appendChild(cText);
+                cWheel.appendChild(cSlot);
+                cSlots.push(cSlot);
+
+                // Disco Derecho (Fahrenheit)
+                const displayF = Math.round((displayC * 9/5) + 32);
+
+                const fSlot = document.createElement('div');
+                fSlot.className = 'number-slot';
+                fSlot.dataset.nativeAngle = -tickAngle+180;
+
+                const fText = document.createElement('div');
+                fText.className = 'number-text';
+                fText.textContent = displayF;
+
+                fSlot.appendChild(fText);
+                fWheel.appendChild(fSlot);
+                fSlots.push(fSlot);
+            }
+            applyRotation();
+        }
+
+        function applyRotation() {
+            cWheel.style.transform = `rotate(${-currentRotationAngle}deg)`;
+            fWheel.style.transform = `rotate(${currentRotationAngle}deg)`;
+
+            cSlots.forEach((slot) => {
+                const nativeAngle = parseFloat(slot.dataset.nativeAngle);
+                const absoluteAngle = nativeAngle - currentRotationAngle;
+                
+                slot.style.transform = `translate(${Math.round(radius * Math.cos(nativeAngle * Math.PI / 180))}px, ${Math.round(radius * Math.sin(nativeAngle * Math.PI / 180))}px) rotate(${currentRotationAngle}deg)`;
+
+                let normalized = (absoluteAngle % 360 + 360) % 360;
+                if (normalized > 180) normalized -= 360;
+
+                if (Math.abs(normalized) < (180 / totalTicks)) slot.classList.add('active');
+                else slot.classList.remove('active');
+            });
+
+            fSlots.forEach((slot) => {
+                const nativeAngle = parseFloat(slot.dataset.nativeAngle);
+                const absoluteAngle = nativeAngle + currentRotationAngle;
+
+                slot.style.transform = `translate(${Math.round(radius * Math.cos(nativeAngle * Math.PI / 180))}px, ${Math.round(radius * Math.sin(nativeAngle * Math.PI / 180))}px) rotate(${-currentRotationAngle}deg)`;
+
+                let normalized = (absoluteAngle % 360 + 360) % 360;
+                let diffToReader = normalized - 180;
+                if (diffToReader > 180) diffToReader -= 360;
+                if (diffToReader < -180) diffToReader += 360;
+
+                if (Math.abs(diffToReader) < (180 / totalTicks)) slot.classList.add('active');
+                else slot.classList.remove('active');
+            });
+
+            const degreesPerCelsius = (360 / totalTicks) / cStep;
+            const currentCelsiusValue = currentRotationAngle / degreesPerCelsius;
+            const currentFahrenheitValue = (currentCelsiusValue * 9/5) + 32;
+        }
+
+        // --- MANEJO DE INTERACCIÓN FÍSICA ---
+        let isDragging = false;
+        let startAngle = 0;
+        let startRotation = 0;
+        let activeWheel = null;
+
+        function getAngle(clientX, clientY, element) {
+            const rect = element.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            return Math.atan2(clientY - centerY, clientX - centerX) * 180 / Math.PI;
+        }
+
+        function handleStart(e) {
+            const touch = e.touches ? e.touches[0] : e;
+            activeWheel = e.currentTarget;
+            isDragging = true;
+            startAngle = getAngle(touch.clientX, touch.clientY, activeWheel);
+            startRotation = currentRotationAngle;
+        }
+
+        function handleMove(e) {
+            if (!isDragging) return;
+            const touch = e.touches ? e.touches[0] : e;
+            const currentAngle = getAngle(touch.clientX, touch.clientY, activeWheel);
+            let angleDiff = currentAngle - startAngle;
+
+            if (angleDiff > 180) angleDiff -= 360;
+            if (angleDiff < -180) angleDiff += 360;
+
+            if (activeWheel.id === 'celsius-wheel') {
+                currentRotationAngle = startRotation - angleDiff;
+            } else {
+                currentRotationAngle = startRotation + angleDiff;
+            }
+
+            applyRotation();
+        }
+
+        function handleEnd() {
+            isDragging = false;
+            activeWheel = null;
+        }
+
+        [cWheel, fWheel].forEach(wheel => {
+            wheel.addEventListener('mousedown', handleStart);
+            wheel.addEventListener('touchstart', handleStart, { passive: true });
+        });
+
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
+
+        function handleWheelScroll(e) {
+            e.preventDefault();
+            currentRotationAngle += Math.sign(e.deltaY) * 1.5;
+            applyRotation();
+        }
+
+        cWheel.addEventListener('wheel', handleWheelScroll, { passive: false });
+        fWheel.addEventListener('wheel', handleWheelScroll, { passive: false });
+
+        createPhysicalWheels();
+    </script>
+</body>
+</html>
