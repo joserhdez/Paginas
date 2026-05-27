@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reloj de Lujo - Números Romanos</title>
+    <style>
+        /* Fuentes elegantes y reset */
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;700&family=Montserrat:wght@200;400&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: radial-gradient(circle, #2a2a2a 0%, #0d0d0d 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+        }
+
+        /* Contenedor principal */
+        .reloj-contenedor {
+            position: relative;
+            width: 460px;
+            height: 460px;
+            background: linear-gradient(145deg, #1e1e1e, #0a0a0a);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 
+                0px 25px 50px rgba(0, 0, 0, 0.8),
+                inset 0px 5px 15px rgba(255, 255, 255, 0.05),
+                inset 0px -5px 15px rgba(0, 0, 0, 0.8);
+            padding: 20px;
+        }
+
+        /* Bisel de oro pulido */
+        .bisel {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            border: 7px solid transparent;
+            background: linear-gradient(135deg, #b59410 0%, #f9e8a2 25%, #b59410 50%, #f9e8a2 75%, #7a6104 100%) border-box;
+            pointer-events: none;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+        }
+
+        /* Esfera del reloj */
+        .esfera {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #1a1a1a 0%, #0a0a0a 100%);
+            border-radius: 50%;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 1);
+            overflow: hidden;
+        }
+
+        /* Textura Guilloché */
+        .esfera::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.015) 0deg 1deg, transparent 1deg 2deg);
+            border-radius: 50%;
+        }
+
+        /* Marca de la Casa Relojera */
+        .marca {
+            position: absolute;
+            top: 30%;
+            width: 100%;
+            text-align: center;
+            color: #dfba48;
+            font-family: 'Cinzel', serif;
+            font-size: 15px;
+            letter-spacing: 7px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+            font-weight: 700;
+        }
+
+        .sub-marca {
+            position: absolute;
+            top: 35%;
+            width: 100%;
+            text-align: center;
+            color: #777;
+            font-size: 8px;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        /* Contenedor de números */
+        .numeros-contenedor {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0; left: 0;
+        }
+
+        /* Estilo de los Números Romanos */
+        .numero-hora {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            color: #f9e8a2;
+            background: linear-gradient(135deg, #fff 0%, #dfba48 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Cinzel', serif;
+            font-size: 24px;
+            font-weight: 500;
+            text-align: center;
+            line-height: 40px;
+            filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.7));
+        }
+
+        /* Manecillas */
+        .manecilla-contenedor {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .manecilla {
+            position: absolute;
+            bottom: 50%;
+            transform-origin: bottom center;
+            border-radius: 4px;
+        }
+
+        /* Horas - Estilo espada (Dauphine) con relieve */
+        .hora {
+            width: 8px;
+            height: 105px;
+            background: linear-gradient(to top, #b59410, #f9e8a2, #fff);
+            border-radius: 4px 4px 0 0;
+            z-index: 3;
+            box-shadow: -2px 4px 6px rgba(0,0,0,0.5);
+        }
+
+        /* Minutos - Más delgada y larga */
+        .minuto {
+            width: 5px;
+            height: 145px;
+            background: linear-gradient(to top, #b59410, #f9e8a2, #fff);
+            border-radius: 3px 3px 0 0;
+            z-index: 4;
+            box-shadow: -2px 4px 6px rgba(0,0,0,0.5);
+        }
+
+        /* Segundero de alta gama (Movimiento continuo continuo) */
+        .segundo {
+            width: 2px;
+            height: 165px;
+            background: #d42a2a; /* Rojo carmín para contraste de lujo */
+            border-radius: 1px;
+            z-index: 5;
+            box-shadow: -1px 3px 4px rgba(0,0,0,0.4);
+        }
+
+        /* Perno central o eje */
+        .eje-central {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: radial-gradient(circle, #fff 0%, #b59410 60%, #4a3a02 100%);
+            border-radius: 50%;
+            z-index: 10;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="reloj-contenedor">
+        <div class="bisel"></div>
+        <div class="esfera">
+            <div class="marca">CHRONOS</div>
+            <div class="sub-marca">Automatique</div>
+
+            <div class="numeros-contenedor" id="numeros"></div>
+
+            <div class="manecilla-contenedor">
+                <div class="manecilla hora" id="hr"></div>
+            </div>
+            <div class="manecilla-contenedor">
+                <div class="manecilla minuto" id="mn"></div>
+            </div>
+            <div class="manecilla-contenedor">
+                <div class="manecilla segundo" id="sc"></div>
+            </div>
+            
+            <div class="eje-central"></div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Matriz de números romanos (Tradicional de relojería: el 4 suele usarse como IIII para balance visual)
+        const numerosRomanos = ["I", "II", "III", "IIII", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+        const contenedorNumeros = document.getElementById('numeros');
+        
+        // Radio de distribución (ajustado para que queden perfectos dentro de la esfera)
+        const radio = 160; 
+        const centroX = 225; // Mitad del contenedor de la esfera (410px aprox internos)
+        const centroY = 225;
+
+        numerosRomanos.forEach((num, index) => {
+            const hora = index + 1;
+            // El ángulo comienza en las 12 (en radianes: -PI/2)
+            const angulo = (hora * 30) * (Math.PI / 180) - (Math.PI / 2);
+            
+            // Posicionamiento trigonométrico preciso
+            const x = centroX + radio * Math.cos(angulo) - 20; // -20 para centrar la caja de 40px
+            const y = centroY + radio * Math.sin(angulo) - 20;
+
+            const elementoNumero = document.createElement('div');
+            elementoNumero.classList.add('numero-hora');
+            elementoNumero.innerText = num;
+            elementoNumero.style.left = `${x}px`;
+            elementoNumero.style.top = `${y}px`;
+
+            contenedorNumeros.appendChild(elementoNumero);
+        });
+
+        // 2. Animación fluida de la maquinaria automática (Sweep Seconds)
+        const hr = document.getElementById('hr');
+        const mn = document.getElementById('mn');
+        const sc = document.getElementById('sc');
+
+        function actualizarReloj() {
+            const ahora = new Date();
+            
+            const ms = ahora.getMilliseconds();
+            const segundos = ahora.getSeconds() + ms / 1000;
+            const minutos = ahora.getMinutes() + segundos / 60;
+            const horas = ahora.getHours() % 12 + minutos / 60;
+
+            const rotacionSegundos = segundos * 6; 
+            const rotacionMinutos = minutos * 6;   
+            const rotacionHoras = horas * 30;      
+
+            sc.style.transform = `rotate(${rotacionSegundos}deg)`;
+            mn.style.transform = `rotate(${rotacionMinutos}deg)`;
+            hr.style.transform = `rotate(${rotacionHoras}deg)`;
+
+            requestAnimationFrame(actualizarReloj);
+        }
+
+        requestAnimationFrame(actualizarReloj);
+    </script>
+</body>
+</html>
