@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clima – Ciudad Juárez</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: #fff;
+    padding: 24px 16px;
+  }
+
+  .container { max-width: 680px; margin: 0 auto; }
+
+  /* Header */
+  .header { text-align: center; margin-bottom: 28px; }
+  .header h1 { font-size: 1.3rem; font-weight: 400; opacity: .7; letter-spacing: 2px; text-transform: uppercase; }
+  .header .ciudad { font-size: 2rem; font-weight: 700; }
+  .header .fecha { font-size: .9rem; opacity: .6; margin-top: 4px; }
+
+  /* Tarjeta principal */
+  .card-hoy {
+    background: rgba(255,255,255,.08);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 24px;
+    padding: 32px 28px;
+    margin-bottom: 20px;
+  }
+
+  .hoy-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+  .temp-actual { font-size: 5rem; font-weight: 200; line-height: 1; }
+  .temp-actual span { font-size: 2.5rem; }
+
+  .condicion-wrap { text-align: right; }
+  .icono-grande { font-size: 5rem; line-height: 1; }
+  .condicion-texto { font-size: 1.1rem; opacity: .85; margin-top: 4px; }
+
+  .hoy-divider { border: none; border-top: 1px solid rgba(255,255,255,.12); margin: 22px 0; }
+
+  .hoy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 16px;
+  }
+
+  .dato {
+    background: rgba(255,255,255,.06);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .dato .etiqueta { font-size: .75rem; opacity: .6; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .dato .valor { font-size: 1.3rem; font-weight: 600; }
+  .dato .valor.lluvia { color: #7dd3fc; }
+  .dato .valor.calor { color: #fb923c; }
+  .dato .unidad { font-size: .8rem; opacity: .6; }
+
+  /* Próximos días */
+  .seccion-titulo {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    opacity: .55;
+    margin-bottom: 12px;
+  }
+
+  .dias-grid { display: flex; flex-direction: column; gap: 10px; }
+
+  .card-dia {
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 16px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: background .2s;
+  }
+  .card-dia:hover { background: rgba(255,255,255,.13); }
+
+  .dia-nombre { font-size: .95rem; font-weight: 600; min-width: 90px; text-transform: capitalize; }
+  .dia-icono { font-size: 1.8rem; }
+  .dia-condicion { font-size: .82rem; opacity: .7; flex: 1; text-align: center; }
+  .dia-temps { font-size: .9rem; display: flex; gap: 8px; align-items: center; }
+  .dia-max { font-weight: 700; color: #fb923c; }
+  .dia-min { opacity: .6; }
+  .dia-lluvia { font-size: .82rem; color: #7dd3fc; min-width: 44px; text-align: right; }
+
+  /* Loading / error */
+  .loading { text-align: center; padding: 60px 0; opacity: .6; font-size: 1.1rem; }
+  .error-msg { background: rgba(239,68,68,.2); border: 1px solid rgba(239,68,68,.4); border-radius: 12px; padding: 16px 20px; text-align: center; }
+
+  .actualizado { text-align: center; font-size: .75rem; opacity: .4; margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="ciudad">Ciudad Juárez</div>
+    <div class="header h1">Chihuahua, México</div>
+    <div class="fecha" id="fecha"></div>
+  </div>
+
+  <div id="contenido"><div class="loading">⏳ Cargando datos del clima…</div></div>
+  <div class="actualizado" id="actualizado"></div>
+</div>
+
+<script>
+const LAT = 31.6904, LON = -106.4245;
+
+const WMO = {
+  0:  ['☀️','Despejado'],
+  1:  ['🌤️','Mayormente despejado'],
+  2:  ['⛅','Parcialmente nublado'],
+  3:  ['☁️','Nublado'],
+  45: ['🌫️','Neblina'],
+  48: ['🌫️','Neblina con escarcha'],
+  51: ['🌦️','Llovizna ligera'],
+  53: ['🌦️','Llovizna moderada'],
+  55: ['🌧️','Llovizna intensa'],
+  61: ['🌧️','Lluvia ligera'],
+  63: ['🌧️','Lluvia moderada'],
+  65: ['🌧️','Lluvia intensa'],
+  71: ['❄️','Nevada ligera'],
+  73: ['❄️','Nevada moderada'],
+  75: ['❄️','Nevada intensa'],
+  80: ['🌦️','Chubascos ligeros'],
+  81: ['🌧️','Chubascos moderados'],
+  82: ['⛈️','Chubascos fuertes'],
+  95: ['⛈️','Tormenta eléctrica'],
+  96: ['⛈️','Tormenta con granizo'],
+  99: ['⛈️','Tormenta con granizo fuerte'],
+};
+
+function getWMO(code) {
+  return WMO[code] || ['🌡️', 'Desconocido'];
+}
+
+const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function formatFecha(d) {
+  return `${DIAS[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
+}
+
+async function cargarClima() {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}`
+    + `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day`
+    + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset`
+    + `&timezone=America%2FDenver&forecast_days=6`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Error al obtener datos');
+  return res.json();
+}
+
+function render(d) {
+  const c = d.current;
+  const day = d.daily;
+
+  const hoy = new Date();
+  document.getElementById('fecha').textContent = formatFecha(hoy);
+
+  const [icoHoy, condHoy] = getWMO(c.weather_code);
+
+  // Amanecer / atardecer
+  const sr = day.sunrise[0].split('T')[1].substring(0,5);
+  const ss = day.sunset[0].split('T')[1].substring(0,5);
+
+  // Lluvia hoy
+  const lluviaHoy = day.precipitation_probability_max[0] ?? 0;
+
+  const html = `
+    <div class="card-hoy">
+      <div class="hoy-top">
+        <div>
+          <div class="temp-actual">${Math.round(c.temperature_2m)}<span>°C</span></div>
+          <div style="opacity:.6;margin-top:4px">Sensación: ${Math.round(c.apparent_temperature)}°C</div>
+        </div>
+        <div class="condicion-wrap">
+          <div class="icono-grande">${icoHoy}</div>
+          <div class="condicion-texto">${condHoy}</div>
+        </div>
+      </div>
+      <hr class="hoy-divider">
+      <div class="hoy-grid">
+        <div class="dato">
+          <div class="etiqueta">🌧 Prob. lluvia</div>
+          <div class="valor lluvia">${lluviaHoy}%</div>
+        </div>
+        <div class="dato">
+          <div class="etiqueta">💧 Humedad</div>
+          <div class="valor">${c.relative_humidity_2m}%</div>
+        </div>
+        <div class="dato">
+          <div class="etiqueta">💨 Viento</div>
+          <div class="valor">${Math.round(c.wind_speed_10m)} <span class="unidad">km/h</span></div>
+        </div>
+        <div class="dato">
+          <div class="etiqueta">🌡 Máx / Mín</div>
+          <div class="valor"><span class="calor">${Math.round(day.temperature_2m_max[0])}°</span> / ${Math.round(day.temperature_2m_min[0])}°</div>
+        </div>
+        <div class="dato">
+          <div class="etiqueta">🌅 Amanecer</div>
+          <div class="valor">${sr}</div>
+        </div>
+        <div class="dato">
+          <div class="etiqueta">🌇 Atardecer</div>
+          <div class="valor">${ss}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="seccion-titulo">Próximos 5 días</div>
+    <div class="dias-grid">
+      ${day.weather_code.slice(1,6).map((code, i) => {
+        const idx = i + 1;
+        const fecha = new Date(day.time ? day.time[idx] : Date.now() + idx * 86400000);
+        // parse date from string
+        const [y,m,dd] = day.time ? [] : [];
+        const dateStr = d.daily.time[idx];
+        const [yr,mo,da] = dateStr.split('-').map(Number);
+        const fechaObj = new Date(yr, mo-1, da);
+        const [ico, cond] = getWMO(code);
+        const max = Math.round(day.temperature_2m_max[idx]);
+        const min = Math.round(day.temperature_2m_min[idx]);
+        const lluvia = day.precipitation_probability_max[idx] ?? 0;
+        return `
+          <div class="card-dia">
+            <div class="dia-nombre">${DIAS[fechaObj.getDay()]}</div>
+            <div class="dia-icono">${ico}</div>
+            <div class="dia-condicion">${cond}</div>
+            <div class="dia-temps">
+              <span class="dia-max">${max}°</span>
+              <span class="dia-min">${min}°</span>
+            </div>
+            <div class="dia-lluvia">🌧 ${lluvia}%</div>
+          </div>`;
+      }).join('')}
+    </div>`;
+
+  document.getElementById('contenido').innerHTML = html;
+  document.getElementById('actualizado').textContent =
+    `Actualizado: ${new Date().toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'})}`;
+}
+
+(async () => {
+  try {
+    const data = await cargarClima();
+    render(data);
+  } catch (e) {
+    document.getElementById('contenido').innerHTML =
+      `<div class="error-msg">⚠️ No se pudo cargar el clima.<br><small>${e.message}</small></div>`;
+  }
+})();
+</script>
+</body>
+</html>
